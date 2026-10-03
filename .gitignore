@@ -1,0 +1,16 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Local database — do not commit family balances/history
+family_bank.db
+family_bank.db-shm
+family_bank.db-wal
+*.db-journal
+
+# Editor / OS files
+.vscode/
+.DS_Store
+Thumbs.db
