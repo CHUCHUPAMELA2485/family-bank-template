@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ bank_name }}{% endblock %}
+{% block content %}
+<section class="welcome">
+  <div class="welcome-art" aria-hidden="true">☁️　🏠　☀️</div>
+  <p class="eyebrow">OUR FAMILY BANK</p>
+  <h1>Choose your card</h1>
+  <p>Tap a card to open an account.</p>
+</section>
+
+<section class="wallet-stack">
+  {% for kid in kids %}
+    <a class="wallet-card theme-{{ kid.theme }}" href="{{ url_for('kid_page', kid_id=kid.id) }}">
+      <div class="wallet-top">
+        <div class="avatar avatar-{{ kid.animal }}">
+          <img src="{{ url_for('static', filename='icons/' + kid.animal + '.svg') }}" alt="">
+        </div>
+        <div class="wallet-name">
+          <span class="condensed-label">ACCOUNT</span>
+          <h2>{{ kid.name }}</h2>
+        </div>
+        <div class="rent-pill">
+          <span class="rent-house">⌂</span>
+          <span><small>Rent</small><strong>${{ "%.0f"|format(kid.rent_amount) }}/month</strong></span>
+        </div>
+      </div>
+
+      <div class="wallet-balances">
+        <div>
+          <span class="balance-icon">▣</span>
+          <span><small>Checking</small><strong>${{ "%.2f"|format(kid.checking) }}</strong></span>
+        </div>
+        <div class="balance-divider"></div>
+        <div>
+          <span class="balance-icon pig">●</span>
+          <span><small>Savings</small><strong>${{ "%.2f"|format(kid.savings) }}</strong></span>
+        </div>
+        <span class="open-circle" aria-hidden="true">›</span>
+      </div>
+    </a>
+  {% endfor %}
+</section>
+{% endblock %}

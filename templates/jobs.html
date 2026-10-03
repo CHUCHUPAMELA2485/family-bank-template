@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Chores & Jobs — {{ bank_name }}{% endblock %}
+{% block content %}
+
+<section class="jobs-hero">
+  <div>
+    <p class="eyebrow">CHORES & JOBS</p>
+    <h1>Earn some money</h1>
+    <p>Finish a task, send it to Parent Mode, and get paid after it is approved.</p>
+  </div>
+  <span class="jobs-hero-icon">✅</span>
+</section>
+
+<section class="job-kid-switcher" aria-label="Choose kid account">
+  {% for kid in kids %}
+    <a href="{{ url_for('jobs', kid_id=kid.id) }}"
+       class="job-kid-chip theme-{{ kid.theme }} {% if selected_kid and selected_kid.id == kid.id %}active{% endif %}">
+      <span class="avatar job-chip-avatar">
+        <img src="{{ url_for('static', filename='icons/' + kid.animal + '.svg') }}" alt="">
+      </span>
+      <span>
+        <strong>{{ kid.name }}</strong>
+        <small>${{ "%.2f"|format(kid.checking) }} checking</small>
+      </span>
+    </a>
+  {% endfor %}
+</section>
+
+{% if selected_kid %}
+<section class="task-board-section">
+  <div class="task-board-heading">
+    <div>
+      <p class="condensed-label">{{ selected_kid.name|upper }}'S CHORES</p>
+      <h2>Regular chores</h2>
+      <p>Small household tasks that can earn a little extra money.</p>
+    </div>
+    <span class="soft-icon">🧹</span>
+  </div>
+
+  <div class="job-card-grid">
+    {% for task in chores %}
+      <article class="job-card chore-card">
+        <div class="job-card-top">
+          <span class="job-icon">{{ task.icon }}</span>
+          <span class="task-type-pill chore">CHORE</span>
+          <span class="job-reward">${{ "%.2f"|format(task.reward) }}</span>
+        </div>
+
+        <h3>{{ task.title }}</h3>
+        <p>{{ task.description or "Finish this chore and send it for approval." }}</p>
+
+        <div class="job-card-footer">
+          <small>
+            {% if task.assigned_kid_id %}Assigned to {{ selected_kid.name }}
+            {% else %}Available to any kid{% endif %}
+          </small>
+          <form method="post" action="{{ url_for('complete_task', task_id=task.id, kid_id=selected_kid.id) }}">
+            <button class="primary-button job-done-button" type="submit">✓ I finished it</button>
+          </form>
+        </div>
+      </article>
+    {% else %}
+      <div class="job-empty-state">
+        <span>✨</span>
+        <strong>No open chores</strong>
+        <small>A parent can reopen or add chores from Parent Mode.</small>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="task-board-section paid-job-section">
+  <div class="task-board-heading">
+    <div>
+      <p class="condensed-label">{{ selected_kid.name|upper }}'S JOBS</p>
+      <h2>Bigger paid jobs</h2>
+      <p>These take more work, so they pay more.</p>
+    </div>
+    <span class="soft-icon">💪</span>
+  </div>
+
+  <div class="job-card-grid">
+    {% for task in paid_jobs %}
+      <article class="job-card paid-job-card">
+        <div class="job-card-top">
+          <span class="job-icon">{{ task.icon }}</span>
+          <span class="task-type-pill job">JOB</span>
+          <span class="job-reward">${{ "%.2f"|format(task.reward) }}</span>
+        </div>
+
+        <h3>{{ task.title }}</h3>
+        <p>{{ task.description or "Finish this job and send it for approval." }}</p>
+
+        <div class="job-card-footer">
+          <small>
+            {% if task.assigned_kid_id %}Assigned to {{ selected_kid.name }}
+            {% else %}Available to any kid{% endif %}
+          </small>
+          <form method="post" action="{{ url_for('complete_task', task_id=task.id, kid_id=selected_kid.id) }}">
+            <button class="primary-button job-done-button" type="submit">✓ I finished it</button>
+          </form>
+        </div>
+      </article>
+    {% else %}
+      <div class="job-empty-state">
+        <span>🌤️</span>
+        <strong>No open jobs</strong>
+        <small>A parent can reopen or add paid jobs from Parent Mode.</small>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel job-history-panel">
+  <div class="section-title">
+    <div>
+      <p class="condensed-label">RECENT WORK</p>
+      <h2>{{ selected_kid.name }}'s task history</h2>
+    </div>
+    <span class="soft-icon">📋</span>
+  </div>
+
+  <div class="job-history-list">
+    {% for entry in history %}
+      <div class="job-history-row">
+        <span class="job-history-icon">{{ entry.icon }}</span>
+        <div class="job-history-copy">
+          <strong>{{ entry.title }}</strong>
+          <small>{{ entry.task_type|capitalize }} · {{ entry.submitted_at.replace("T"," ") }}</small>
+        </div>
+
+        <span class="job-status {{ entry.status }}">
+          {% if entry.status == 'pending' %}Waiting for parent
+          {% elif entry.status == 'approved' %}+${{ "%.2f"|format(entry.reward) }} paid
+          {% else %}Try again{% endif %}
+        </span>
+      </div>
+    {% else %}
+      <div class="job-empty-history">
+        <span>🌱</span>
+        <strong>No completed work yet</strong>
+        <small>Submitted chores and jobs will show here.</small>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}

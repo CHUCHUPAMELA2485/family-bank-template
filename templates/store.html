@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Store — {{ bank_name }}{% endblock %}
+{% block content %}
+<section class="welcome compact">
+  <div class="welcome-art" aria-hidden="true">☀️　🏪　☁️</div>
+  <p class="eyebrow">{{ bank_name|upper }}</p>
+  <h1>House Store</h1>
+  <p>Choose an account, pick something, and pay.</p>
+</section>
+
+<form method="post" action="{{ url_for('store_checkout') }}" id="storeForm">
+  <section class="kid-picker" aria-label="Choose account">
+    {% for kid in kids %}
+      <label class="kid-chip theme-{{ kid.theme }}">
+        <input type="radio" name="kid_id" value="{{ kid.id }}" {% if loop.first %}checked{% endif %}>
+        <span class="avatar avatar-{{ kid.animal }}">
+          <img src="{{ url_for('static', filename='icons/' + kid.animal + '.svg') }}" alt="">
+        </span>
+        <strong>{{ kid.name }}</strong>
+      </label>
+    {% endfor %}
+  </section>
+
+  {% if items %}
+    <section class="shop-grid">
+      {% for item in items %}
+        <label class="shop-item">
+          <input class="item-check" type="checkbox" name="item_id" value="{{ item.id }}" data-price="{{ item.price }}">
+          <span class="shop-icon">{{ item.icon }}</span>
+          <strong>{{ item.name }}</strong>
+          <span class="shop-price">${{ "%.2f"|format(item.price) }}</span>
+          <span class="check-dot">✓</span>
+        </label>
+      {% endfor %}
+    </section>
+  {% else %}
+    <section class="empty-store">
+      <span>🛒</span>
+      <h2>The store is empty</h2>
+      <p>A parent can add items from Parent Mode.</p>
+    </section>
+  {% endif %}
+
+  <section class="checkout-card">
+    <div>
+      <span class="condensed-label">YOUR ORDER</span>
+      <strong id="orderCount">0 items</strong>
+    </div>
+    <div class="checkout-total">
+      <small>Total</small>
+      <strong id="totalValue">$0.00</strong>
+    </div>
+  </section>
+
+  <button class="tap-button" type="submit" {% if not items %}disabled{% endif %}>
+    <span class="nfc-waves">)))</span>
+    <span>Pay Now</span>
+  </button>
+  <p class="tap-note">When the NFC reader arrives, this button becomes the card-tap checkout.</p>
+</form>
+
+<script>
+(() => {
+  const checks = [...document.querySelectorAll('.item-check')];
+  const totalValue = document.getElementById('totalValue');
+  const orderCount = document.getElementById('orderCount');
+  function updateTotal() {
+    let total = 0;
+    let count = 0;
+    checks.forEach(c => {
+      if (c.checked) {
+        total += Number(c.dataset.price || 0);
+        count += 1;
+      }
+    });
+    totalValue.textContent = '$' + total.toFixed(2);
+    orderCount.textContent = count + (count === 1 ? ' item' : ' items');
+  }
+  checks.forEach(c => c.addEventListener('change', updateTotal));
+  updateTotal();
+})();
+</script>
+{% endblock %}

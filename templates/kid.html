@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}{{ kid.name }} — {{ bank_name }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('dashboard') }}">‹ All cards</a>
+
+{% set total_money = kid.checking + kid.savings %}
+{% if total_money > 0 %}
+  {% set savings_percent = ((kid.savings / total_money) * 100)|round|int %}
+{% else %}
+  {% set savings_percent = 0 %}
+{% endif %}
+
+<section class="kid-hero theme-{{ kid.theme }}">
+  <div class="kid-hero-bubble bubble-one"></div>
+  <div class="kid-hero-bubble bubble-two"></div>
+
+  <div class="kid-hero-main">
+    <div class="avatar avatar-{{ kid.animal }} kid-avatar-xl">
+      <img src="{{ url_for('static', filename='icons/' + kid.animal + '.svg') }}" alt="">
+    </div>
+
+    <div class="kid-hero-copy">
+      <p class="condensed-label">MY ACCOUNT</p>
+      <h1>Hi, {{ kid.name }}!</h1>
+      <p>{{ kid.message }}</p>
+    </div>
+
+    <div class="kid-total-pill">
+      <small>Total money</small>
+      <strong>${{ "%.2f"|format(total_money) }}</strong>
+      <span>Checking + Savings</span>
+    </div>
+  </div>
+
+  <div class="kid-balance-strip">
+    <div class="kid-balance-box">
+      <span class="kid-money-icon">▣</span>
+      <div>
+        <small>Ready to spend</small>
+        <strong>${{ "%.2f"|format(kid.checking) }}</strong>
+        <span>Checking</span>
+      </div>
+    </div>
+
+    <div class="kid-balance-box">
+      <span class="kid-money-icon savings">●</span>
+      <div>
+        <small>Saved away</small>
+        <strong>${{ "%.2f"|format(kid.savings) }}</strong>
+        <span>Savings</span>
+      </div>
+    </div>
+
+    <div class="kid-balance-box">
+      <span class="kid-money-icon rent">⌂</span>
+      <div>
+        <small>Monthly rent</small>
+        <strong>${{ "%.0f"|format(kid.rent_amount) }}</strong>
+        <span>House bill</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="money-snapshot panel">
+  <div class="section-title">
+    <div>
+      <p class="condensed-label">MY MONEY</p>
+      <h2>Your money snapshot</h2>
+    </div>
+    <span class="soft-icon">✨</span>
+  </div>
+
+  <div class="savings-snapshot">
+    <div class="snapshot-copy">
+      <strong>{{ savings_percent }}% of your money is in savings</strong>
+      <small>
+        {% if kid.savings > 0 %}
+          Nice! You have ${{ "%.2f"|format(kid.savings) }} tucked away.
+        {% else %}
+          Move a little money to savings whenever you're ready.
+        {% endif %}
+      </small>
+    </div>
+
+    <div class="savings-meter" aria-label="{{ savings_percent }} percent in savings">
+      <span style="width: {{ savings_percent }}%"></span>
+    </div>
+
+    <div class="snapshot-labels">
+      <span>Checking ${{ "%.2f"|format(kid.checking) }}</span>
+      <span>Savings ${{ "%.2f"|format(kid.savings) }}</span>
+    </div>
+  </div>
+</section>
+
+<section class="kid-actions-wrap">
+  <div class="kid-section-heading">
+    <div>
+      <p class="condensed-label">QUICK ACTIONS</p>
+      <h2>What do you want to do?</h2>
+    </div>
+  </div>
+
+  <div class="quick-grid kid-quick-grid">
+    <button class="action-tile mint" type="button" onclick="document.getElementById('transferBox').scrollIntoView({behavior:'smooth'})">
+      <span class="tile-icon">↔</span>
+      <span><strong>Move Money</strong><small>Checking ↔ Savings</small></span>
+      <span class="tile-arrow">›</span>
+    </button>
+
+    <a class="action-tile rose" href="{{ url_for('store') }}">
+      <span class="tile-icon">🛒</span>
+      <span><strong>Go to Store</strong><small>Spend from checking</small></span>
+      <span class="tile-arrow">›</span>
+    </a>
+
+    <a class="action-tile blue" href="{{ url_for('jobs', kid_id=kid.id) }}">
+      <span class="tile-icon">✓</span>
+      <span><strong>Chores & Jobs</strong><small>Earn more money</small></span>
+      <span class="tile-arrow">›</span>
+    </a>
+
+    <a class="action-tile lavender" href="#history">
+      <span class="tile-icon">≡</span>
+      <span><strong>History</strong><small>See recent activity</small></span>
+      <span class="tile-arrow">›</span>
+    </a>
+  </div>
+</section>
+
+<section id="transferBox" class="panel kid-tool-panel">
+  <div class="section-title">
+    <div>
+      <p class="condensed-label">SAVINGS TOOL</p>
+      <h2>Move some money</h2>
+      <p class="section-helper">Move money between checking and savings. Your total stays the same.</p>
+    </div>
+    <span class="soft-icon">↔</span>
+  </div>
+
+  <form class="simple-form kid-transfer-form" method="post" action="{{ url_for('transfer', kid_id=kid.id) }}">
+    <label>Where should it go?
+      <select name="from_account">
+        <option value="checking">Checking → Savings</option>
+        <option value="savings">Savings → Checking</option>
+      </select>
+    </label>
+
+    <label>How much?
+      <div class="money-input-wrap">
+        <span>$</span>
+        <input type="number" min="0.01" step="0.01" name="amount" placeholder="10.00" required>
+      </div>
+    </label>
+
+    <button class="primary-button kid-move-button" type="submit">Move money ↔</button>
+  </form>
+</section>
+
+<section id="history" class="panel kid-history-panel">
+  <div class="section-title">
+    <div>
+      <p class="condensed-label">RECENT ACTIVITY</p>
+      <h2>Your money story</h2>
+      <p class="section-helper">The newest activity is shown first.</p>
+    </div>
+    <span class="soft-icon">≡</span>
+  </div>
+
+  <div class="activity-list kid-activity-list">
+    {% for tx in transactions %}
+      <div class="activity-row kid-activity-row">
+        <div class="activity-symbol
+          {% if tx.category == 'rent' %}rent-symbol
+          {% elif tx.category == 'purchase' %}purchase-symbol
+          {% elif tx.category == 'transfer' %}transfer-symbol
+          {% elif tx.amount > 0 %}deposit-symbol
+          {% else %}charge-symbol{% endif %}">
+          {% if tx.category == 'rent' %}⌂
+          {% elif tx.category == 'purchase' %}🛒
+          {% elif tx.category == 'transfer' %}↔
+          {% elif tx.amount > 0 %}+
+          {% else %}−{% endif %}
+        </div>
+
+        <div class="activity-copy">
+          <strong>{{ tx.description }}</strong>
+          <small>{{ tx.account_type|capitalize }} · {{ tx.created_at.replace("T"," ") }}</small>
+        </div>
+
+        <div class="activity-amount {% if tx.amount >= 0 %}positive{% else %}negative{% endif %}">
+          {% if tx.amount >= 0 %}+{% endif %}${{ "%.2f"|format(tx.amount) }}
+        </div>
+      </div>
+    {% else %}
+      <div class="kid-empty-history">
+        <span>🌱</span>
+        <strong>No activity yet</strong>
+        <small>Your deposits, purchases, transfers, and rent will show up here.</small>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

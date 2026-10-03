@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Cards — {{ bank_name }}{% endblock %}
+{% block content %}
+<section class="welcome compact">
+  <p class="eyebrow">{{ bank_name|upper }} WALLET</p>
+  <h1>Cards</h1>
+  <p>These are the cards that will connect to the NFC reader.</p>
+</section>
+
+<section class="wallet-stack cards-page">
+  {% for kid in kids %}
+    <article class="wallet-card theme-{{ kid.theme }}">
+      <div class="wallet-top">
+        <div class="avatar avatar-{{ kid.animal }}">
+          <img src="{{ url_for('static', filename='icons/' + kid.animal + '.svg') }}" alt="">
+        </div>
+        <div class="wallet-name">
+          <span class="condensed-label">{{ bank_name|upper }} CARD</span>
+          <h2>{{ kid.name }}</h2>
+        </div>
+        <div class="card-chip" aria-hidden="true">▦</div>
+      </div>
+      <div class="card-status-row">
+        <span class="contactless">)))</span>
+        {% if kid.nfc_uid %}
+          <span class="status-badge good">Linked</span>
+        {% else %}
+          <span class="status-badge">Waiting for NFC card</span>
+        {% endif %}
+      </div>
+    </article>
+  {% endfor %}
+</section>
+
+<div class="info-note">
+  <strong>Next hardware step</strong>
+  <p>When your USB NFC reader arrives, Parent Mode can link each physical card to a kid account.</p>
+</div>
+{% endblock %}

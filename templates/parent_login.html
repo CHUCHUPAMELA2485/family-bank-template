@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Parent — {{ bank_name }}{% endblock %}
+{% block content %}
+<section class="parent-login panel">
+  <div class="parent-lock">🔒</div>
+  <p class="condensed-label">PARENT MODE</p>
+  <h1>Parents only</h1>
+  <p>Enter the 4-digit PIN to manage money, rent, and cards.</p>
+  <form method="post" class="pin-form">
+    <label for="pin">Parent PIN</label>
+    <input id="pin" name="pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" placeholder="••••" required>
+    <button class="primary-button" type="submit">Unlock</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#edf8fb">
+  <title>{% block title %}{{ bank_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="brand-header">
+      <a class="brand-lockup" href="{{ url_for('dashboard') }}" aria-label="{{ bank_name }} home">
+        <span class="brand-mark" aria-hidden="true">⌂</span>
+        <span>{{ bank_name }}</span>
+      </a>
+      <span class="brand-tagline">{{ bank_tagline }}</span>
+    </header>
+
+    <main class="main-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack" aria-live="polite">
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+    <nav class="bottom-nav" aria-label="Main navigation">
+      <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint in ['dashboard','kid_page'] %}active{% endif %}">
+        <span class="nav-icon">⌂</span><span>Home</span>
+      </a>
+      <a href="{{ url_for('store') }}" class="{% if request.endpoint in ['store','store_checkout'] %}active{% endif %}">
+        <span class="nav-icon">🛒</span><span>Store</span>
+      </a>
+      <a href="{{ url_for('jobs') }}" class="{% if request.endpoint in ['jobs','complete_task'] %}active{% endif %}">
+        <span class="nav-icon">✓</span><span>Jobs</span>
+      </a>
+      <a href="{{ url_for('cards') }}" class="{% if request.endpoint == 'cards' %}active{% endif %}">
+        <span class="nav-icon">▣</span><span>Cards</span>
+      </a>
+      <a href="{{ url_for('parent') }}" class="{% if request.endpoint and request.endpoint.startswith('parent') %}active{% endif %}">
+        <span class="nav-icon">●●</span><span>Parent</span>
+      </a>
+    </nav>
+  </div>
+</body>
+</html>

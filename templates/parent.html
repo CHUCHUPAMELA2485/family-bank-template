@@ -1,0 +1,751 @@
+{% extends "base.html" %}
+{% block title %}Parent — {{ bank_name }}{% endblock %}
+{% block content %}
+
+<section class="parent-dashboard-hero">
+  <div>
+    <p class="eyebrow">PARENT MODE</p>
+    <h1>Family Control Center</h1>
+    <p>Manage money, rent, cards, chores, jobs, and the House Store from one place.</p>
+  </div>
+
+  <form method="post" action="{{ url_for('parent_logout') }}">
+    <button class="parent-lock-button" type="submit">
+      <span>🔒</span>
+      Lock Parent Mode
+    </button>
+  </form>
+</section>
+
+<section class="parent-summary-grid" aria-label="Family account summary">
+  <article class="parent-summary-card family-total-card">
+    <span class="parent-summary-icon">🏦</span>
+    <div>
+      <small>Family total</small>
+      <strong>${{ "%.2f"|format(summary.family_total) }}</strong>
+      <span>Across {{ summary.kids_count }} accounts</span>
+    </div>
+  </article>
+
+  <article class="parent-summary-card">
+    <span class="parent-summary-icon checking-summary-icon">▣</span>
+    <div>
+      <small>Total checking</small>
+      <strong>${{ "%.2f"|format(summary.checking_total) }}</strong>
+      <span>Ready to spend</span>
+    </div>
+  </article>
+
+  <article class="parent-summary-card">
+    <span class="parent-summary-icon savings-summary-icon">●</span>
+    <div>
+      <small>Total savings</small>
+      <strong>${{ "%.2f"|format(summary.savings_total) }}</strong>
+      <span>Saved away</span>
+    </div>
+  </article>
+
+  <article class="parent-summary-card">
+    <span class="parent-summary-icon card-summary-icon">⌁</span>
+    <div>
+      <small>NFC cards</small>
+      <strong>{{ summary.cards_linked }}/{{ summary.kids_count }}</strong>
+      <span>Linked to accounts</span>
+    </div>
+  </article>
+
+  <article class="parent-summary-card">
+    <span class="parent-summary-icon store-summary-icon">🛒</span>
+    <div>
+      <small>Store items</small>
+      <strong>{{ summary.active_store_items }}</strong>
+      <span>Currently visible</span>
+    </div>
+  </article>
+
+  <article class="parent-summary-card">
+    <span class="parent-summary-icon task-summary-icon">✓</span>
+    <div>
+      <small>Chores & jobs</small>
+      <strong>{{ summary.pending_tasks }}</strong>
+      <span>{{ summary.open_tasks }} open · awaiting approval</span>
+    </div>
+  </article>
+</section>
+
+<nav class="parent-jump-nav" aria-label="Parent dashboard sections">
+  <a href="#kids-manager"><span>👨‍👩‍👧</span> Kids & Money</a>
+  <a href="#jobs-manager"><span>✅</span> Chores & Jobs</a>
+  <a href="#store-manager"><span>🛒</span> House Store</a>
+</nav>
+
+<section id="kids-manager" class="parent-manager-section">
+  <div class="parent-section-heading">
+    <div>
+      <p class="condensed-label">KIDS & MONEY</p>
+      <h2>Account controls</h2>
+      <p>Open a kid’s controls only when you need them. Their balances stay visible at a glance.</p>
+    </div>
+    <span class="soft-icon">💳</span>
+  </div>
+
+  <div class="parent-account-grid parent-account-grid-v12">
+    {% for kid in kids %}
+      <article class="parent-account parent-account-v12 panel">
+        <div class="parent-account-head theme-{{ kid.theme }}">
+          <div class="avatar avatar-{{ kid.animal }} parent-avatar-lg">
+            <img src="{{ url_for('static', filename='icons/' + kid.animal + '.svg') }}" alt="">
+          </div>
+
+          <div class="parent-kid-name">
+            <p class="condensed-label">ACCOUNT</p>
+            <h2>{{ kid.name }}</h2>
+            <span class="parent-card-status {% if kid.nfc_uid %}linked{% endif %}">
+              {% if kid.nfc_uid %}● Card linked{% else %}○ No card linked{% endif %}
+            </span>
+          </div>
+
+          <div class="parent-balance-summary">
+            <div>
+              <small>Checking</small>
+              <strong>${{ "%.2f"|format(kid.checking) }}</strong>
+            </div>
+            <div>
+              <small>Savings</small>
+              <strong>${{ "%.2f"|format(kid.savings) }}</strong>
+            </div>
+            <div class="parent-total-mini">
+              <small>Total</small>
+              <strong>${{ "%.2f"|format(kid.total) }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <details class="parent-control-drawer">
+          <summary>
+            <span>
+              <strong>Money controls</strong>
+              <small>Add money or make a charge</small>
+            </span>
+            <span class="drawer-chevron">⌄</span>
+          </summary>
+
+          <div class="parent-drawer-content">
+            <form class="simple-form compact-form parent-money-form" method="post" action="{{ url_for('parent_transaction', kid_id=kid.id) }}">
+              <div class="form-row">
+                <label>Account
+                  <select name="account_type">
+                    <option value="checking">Checking</option>
+                    <option value="savings">Savings</option>
+                  </select>
+                </label>
+
+                <label>Amount
+                  <div class="money-input-wrap">
+                    <span>$</span>
+                    <input type="number" name="amount" min="0.01" step="0.01" placeholder="5.00" required>
+                  </div>
+                </label>
+              </div>
+
+              <label>Description
+                <input name="description" placeholder="Chore, gift, adjustment...">
+              </label>
+
+              <div class="button-row parent-adjust-buttons">
+                <button class="primary-button small-button" name="action" value="deposit" type="submit">+ Add money</button>
+                <button class="secondary-button small-button" name="action" value="charge" type="submit">− Charge</button>
+              </div>
+            </form>
+          </div>
+        </details>
+
+        <details class="parent-control-drawer">
+          <summary>
+            <span>
+              <strong>Rent & house bill</strong>
+              <small>Monthly rent is ${{ "%.0f"|format(kid.rent_amount) }}</small>
+            </span>
+            <span class="drawer-chevron">⌄</span>
+          </summary>
+
+          <div class="parent-drawer-content">
+            <div class="parent-rent-box">
+              <span class="parent-tool-icon rent-tool-icon">⌂</span>
+              <div>
+                <strong>Charge monthly rent</strong>
+                <small>This takes ${{ "%.0f"|format(kid.rent_amount) }} from {{ kid.name }}’s checking account.</small>
+              </div>
+
+              <form method="post" action="{{ url_for('parent_rent', kid_id=kid.id) }}">
+                <button class="rent-button" type="submit">Charge ${{ "%.0f"|format(kid.rent_amount) }}</button>
+              </form>
+            </div>
+          </div>
+        </details>
+
+        <details class="parent-control-drawer">
+          <summary>
+            <span>
+              <strong>NFC card</strong>
+              <small>{% if kid.nfc_uid %}Card UID saved{% else %}No card linked yet{% endif %}</small>
+            </span>
+            <span class="drawer-chevron">⌄</span>
+          </summary>
+
+          <div class="parent-drawer-content">
+            <form class="card-link-form parent-card-form-v12" method="post" action="{{ url_for('parent_card', kid_id=kid.id) }}">
+              <div class="parent-card-field">
+                <span class="parent-tool-icon card-tool-icon">⌁</span>
+                <label>NFC Card UID
+                  <input name="nfc_uid" value="{{ kid.nfc_uid or '' }}" placeholder="Reader will supply this later">
+                </label>
+              </div>
+              <button class="secondary-button" type="submit">Save card</button>
+            </form>
+          </div>
+        </details>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+
+<section id="jobs-manager" class="panel jobs-manager">
+  <div class="section-title">
+    <div>
+      <p class="condensed-label">CHORES & JOBS</p>
+      <h2>Work & approval center</h2>
+      <p class="manager-help">Kids submit finished work here. Approving it automatically pays their checking account.</p>
+    </div>
+    <span class="soft-icon">✅</span>
+  </div>
+
+  {% if pending_tasks %}
+    <div class="approval-banner">
+      <div>
+        <span class="approval-banner-icon">🔔</span>
+        <span>
+          <strong>{{ pending_tasks|length }} waiting for approval</strong>
+          <small>Review the work before paying it.</small>
+        </span>
+      </div>
+    </div>
+
+    <div class="pending-task-list">
+      {% for task in pending_tasks %}
+        <article class="pending-task-card">
+          <span class="pending-task-icon">{{ task.icon }}</span>
+          <div class="pending-task-copy">
+            <span class="task-type-pill {{ task.task_type }}">{{ task.task_type|upper }}</span>
+            <strong>{{ task.kid_name }} finished “{{ task.title }}”</strong>
+            <small>{{ task.description }}</small>
+            <span class="pending-pay">${{ "%.2f"|format(task.reward) }} to checking</span>
+          </div>
+
+          <div class="pending-task-actions">
+            <form method="post" action="{{ url_for('parent_task_review', submission_id=task.submission_id, action='approve') }}">
+              <button class="primary-button small-button" type="submit">✓ Approve & Pay</button>
+            </form>
+            <form method="post" action="{{ url_for('parent_task_review', submission_id=task.submission_id, action='reject') }}">
+              <button class="secondary-button small-button" type="submit">↩ Try Again</button>
+            </form>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="no-approvals">
+      <span>✓</span>
+      <div>
+        <strong>Nothing waiting for approval</strong>
+        <small>When a kid marks work finished, it will appear here.</small>
+      </div>
+    </div>
+  {% endif %}
+
+  <details class="task-create-drawer">
+    <summary>
+      <span>
+        <strong>+ Add a new chore or job</strong>
+        <small>Create your own paid household task.</small>
+      </span>
+      <span class="drawer-chevron">⌄</span>
+    </summary>
+
+    <form class="task-create-form" method="post" action="{{ url_for('parent_task_add') }}">
+      <label>Type
+        <select name="task_type">
+          <option value="chore">Chore</option>
+          <option value="job">Job</option>
+        </select>
+      </label>
+
+      <label>Icon
+        <select name="icon" class="task-icon-select">
+          <option value="🗑️">🗑️</option>
+          <option value="🛏️">🛏️</option>
+          <option value="🧼">🧼</option>
+          <option value="🛋️">🛋️</option>
+          <option value="🍽️">🍽️</option>
+          <option value="🚗">🚗</option>
+          <option value="🐶">🐶</option>
+          <option value="🌱">🌱</option>
+          <option value="🌿">🌿</option>
+          <option value="🧹">🧹</option>
+          <option value="🧺">🧺</option>
+          <option value="🧽">🧽</option>
+          <option value="💪">💪</option>
+          <option value="⭐">⭐</option>
+        </select>
+      </label>
+
+      <label class="task-title-field">Name
+        <input name="title" maxlength="60" placeholder="Fold laundry" required>
+      </label>
+
+      <label>Pay
+        <div class="money-input-wrap">
+          <span>$</span>
+          <input type="number" name="reward" min="0" step="0.01" placeholder="3.00" required>
+        </div>
+      </label>
+
+      <label>Assign to
+        <select name="assigned_kid_id">
+          <option value="">Any kid</option>
+          {% for kid in kids %}
+            <option value="{{ kid.id }}">{{ kid.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label class="task-description-field">Description
+        <input name="description" maxlength="180" placeholder="What needs to be done?">
+      </label>
+
+      <button class="primary-button task-add-button" type="submit">+ Add Task</button>
+    </form>
+  </details>
+
+  <div class="task-manager-columns">
+    <section class="task-manager-column">
+      <div class="task-column-heading">
+        <span>🧹</span>
+        <div>
+          <h3>Chores</h3>
+          <small>Regular household responsibilities</small>
+        </div>
+      </div>
+
+      <div class="parent-task-list">
+        {% for task in tasks if task.task_type == 'chore' %}
+          <details class="parent-task-row {% if not task.active %}closed{% endif %}">
+            <summary>
+              <span class="parent-task-icon">{{ task.icon }}</span>
+              <span class="parent-task-summary">
+                <strong>{{ task.title }}</strong>
+                <small>${{ "%.2f"|format(task.reward) }} · {{ task.assigned_name or 'Any kid' }}</small>
+              </span>
+              <span class="task-open-status {% if task.active %}open{% endif %}">
+                {% if task.active %}Open{% else %}Closed{% endif %}
+              </span>
+              <span class="drawer-chevron">⌄</span>
+            </summary>
+
+            <div class="parent-task-edit">
+              <form method="post" action="{{ url_for('parent_task_edit', task_id=task.id) }}">
+                <div class="task-edit-grid">
+                  <label>Type
+                    <select name="task_type">
+                      <option value="chore" selected>Chore</option>
+                      <option value="job">Job</option>
+                    </select>
+                  </label>
+
+                  <label>Icon
+                    <input name="icon" value="{{ task.icon }}" maxlength="12">
+                  </label>
+
+                  <label>Name
+                    <input name="title" value="{{ task.title }}" maxlength="60" required>
+                  </label>
+
+                  <label>Pay
+                    <input type="number" name="reward" min="0" step="0.01" value="{{ '%.2f'|format(task.reward) }}" required>
+                  </label>
+
+                  <label>Assign to
+                    <select name="assigned_kid_id">
+                      <option value="" {% if not task.assigned_kid_id %}selected{% endif %}>Any kid</option>
+                      {% for kid in kids %}
+                        <option value="{{ kid.id }}" {% if task.assigned_kid_id == kid.id %}selected{% endif %}>{{ kid.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </label>
+
+                  <label class="task-edit-description">Description
+                    <input name="description" value="{{ task.description }}">
+                  </label>
+                </div>
+
+                <div class="task-edit-actions">
+                  <button class="secondary-button" type="submit">Save Changes</button>
+                </div>
+              </form>
+
+              <form method="post" action="{{ url_for('parent_task_toggle', task_id=task.id) }}">
+                <button class="ghost-button" type="submit">{% if task.active %}Close Chore{% else %}Reopen Chore{% endif %}</button>
+              </form>
+            </div>
+          </details>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="task-manager-column">
+      <div class="task-column-heading">
+        <span>💪</span>
+        <div>
+          <h3>Jobs</h3>
+          <small>Bigger jobs with bigger pay</small>
+        </div>
+      </div>
+
+      <div class="parent-task-list">
+        {% for task in tasks if task.task_type == 'job' %}
+          <details class="parent-task-row {% if not task.active %}closed{% endif %}">
+            <summary>
+              <span class="parent-task-icon">{{ task.icon }}</span>
+              <span class="parent-task-summary">
+                <strong>{{ task.title }}</strong>
+                <small>${{ "%.2f"|format(task.reward) }} · {{ task.assigned_name or 'Any kid' }}</small>
+              </span>
+              <span class="task-open-status {% if task.active %}open{% endif %}">
+                {% if task.active %}Open{% else %}Closed{% endif %}
+              </span>
+              <span class="drawer-chevron">⌄</span>
+            </summary>
+
+            <div class="parent-task-edit">
+              <form method="post" action="{{ url_for('parent_task_edit', task_id=task.id) }}">
+                <div class="task-edit-grid">
+                  <label>Type
+                    <select name="task_type">
+                      <option value="chore">Chore</option>
+                      <option value="job" selected>Job</option>
+                    </select>
+                  </label>
+
+                  <label>Icon
+                    <input name="icon" value="{{ task.icon }}" maxlength="12">
+                  </label>
+
+                  <label>Name
+                    <input name="title" value="{{ task.title }}" maxlength="60" required>
+                  </label>
+
+                  <label>Pay
+                    <input type="number" name="reward" min="0" step="0.01" value="{{ '%.2f'|format(task.reward) }}" required>
+                  </label>
+
+                  <label>Assign to
+                    <select name="assigned_kid_id">
+                      <option value="" {% if not task.assigned_kid_id %}selected{% endif %}>Any kid</option>
+                      {% for kid in kids %}
+                        <option value="{{ kid.id }}" {% if task.assigned_kid_id == kid.id %}selected{% endif %}>{{ kid.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </label>
+
+                  <label class="task-edit-description">Description
+                    <input name="description" value="{{ task.description }}">
+                  </label>
+                </div>
+
+                <div class="task-edit-actions">
+                  <button class="secondary-button" type="submit">Save Changes</button>
+                </div>
+              </form>
+
+              <form method="post" action="{{ url_for('parent_task_toggle', task_id=task.id) }}">
+                <button class="ghost-button" type="submit">{% if task.active %}Close Job{% else %}Reopen Job{% endif %}</button>
+              </form>
+            </div>
+          </details>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</section>
+
+<section id="store-manager" class="panel store-manager">
+  <div class="section-title">
+    <div>
+      <p class="condensed-label">HOUSE STORE</p>
+      <h2>Manage store items</h2>
+      <p class="manager-help">Add, change, hide, or remove things the kids can buy. No coding needed.</p>
+    </div>
+    <span class="soft-icon">🛒</span>
+  </div>
+
+  <form class="add-store-form" method="post" action="{{ url_for('parent_store_add') }}">
+    <div class="icon-picker-field">
+      <span class="field-label">Icon</span>
+      <button class="icon-picker-trigger" type="button" data-icon-trigger aria-expanded="false">
+        <span class="selected-icon" data-selected-icon>⭐</span>
+        <span class="icon-picker-label">Choose icon</span>
+        <span class="icon-picker-chevron" aria-hidden="true">⌄</span>
+      </button>
+      <input type="hidden" name="icon" value="⭐" data-icon-input>
+      <div class="icon-picker-panel" data-icon-panel>
+        <div class="icon-picker-grid">
+          <button type="button" class="icon-choice" data-icon-choice="🍿" aria-label="Choose 🍿">🍿</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍪" aria-label="Choose 🍪">🍪</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍩" aria-label="Choose 🍩">🍩</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍦" aria-label="Choose 🍦">🍦</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍭" aria-label="Choose 🍭">🍭</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍬" aria-label="Choose 🍬">🍬</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍫" aria-label="Choose 🍫">🍫</button>
+          <button type="button" class="icon-choice" data-icon-choice="🧁" aria-label="Choose 🧁">🧁</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍰" aria-label="Choose 🍰">🍰</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍕" aria-label="Choose 🍕">🍕</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍔" aria-label="Choose 🍔">🍔</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍟" aria-label="Choose 🍟">🍟</button>
+          <button type="button" class="icon-choice" data-icon-choice="🌭" aria-label="Choose 🌭">🌭</button>
+          <button type="button" class="icon-choice" data-icon-choice="🥤" aria-label="Choose 🥤">🥤</button>
+          <button type="button" class="icon-choice" data-icon-choice="🧃" aria-label="Choose 🧃">🧃</button>
+          <button type="button" class="icon-choice" data-icon-choice="🥛" aria-label="Choose 🥛">🥛</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍎" aria-label="Choose 🍎">🍎</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍓" aria-label="Choose 🍓">🍓</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍉" aria-label="Choose 🍉">🍉</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍌" aria-label="Choose 🍌">🍌</button>
+          <button type="button" class="icon-choice" data-icon-choice="🥨" aria-label="Choose 🥨">🥨</button>
+          <button type="button" class="icon-choice" data-icon-choice="🎮" aria-label="Choose 🎮">🎮</button>
+          <button type="button" class="icon-choice" data-icon-choice="🎬" aria-label="Choose 🎬">🎬</button>
+          <button type="button" class="icon-choice" data-icon-choice="📱" aria-label="Choose 📱">📱</button>
+          <button type="button" class="icon-choice" data-icon-choice="💻" aria-label="Choose 💻">💻</button>
+          <button type="button" class="icon-choice" data-icon-choice="🎧" aria-label="Choose 🎧">🎧</button>
+          <button type="button" class="icon-choice" data-icon-choice="📺" aria-label="Choose 📺">📺</button>
+          <button type="button" class="icon-choice" data-icon-choice="🕹️" aria-label="Choose 🕹️">🕹️</button>
+          <button type="button" class="icon-choice" data-icon-choice="🎲" aria-label="Choose 🎲">🎲</button>
+          <button type="button" class="icon-choice" data-icon-choice="🧩" aria-label="Choose 🧩">🧩</button>
+          <button type="button" class="icon-choice" data-icon-choice="⚽" aria-label="Choose ⚽">⚽</button>
+          <button type="button" class="icon-choice" data-icon-choice="🏀" aria-label="Choose 🏀">🏀</button>
+          <button type="button" class="icon-choice" data-icon-choice="🏈" aria-label="Choose 🏈">🏈</button>
+          <button type="button" class="icon-choice" data-icon-choice="🚲" aria-label="Choose 🚲">🚲</button>
+          <button type="button" class="icon-choice" data-icon-choice="🛴" aria-label="Choose 🛴">🛴</button>
+          <button type="button" class="icon-choice" data-icon-choice="🎨" aria-label="Choose 🎨">🎨</button>
+          <button type="button" class="icon-choice" data-icon-choice="📚" aria-label="Choose 📚">📚</button>
+          <button type="button" class="icon-choice" data-icon-choice="✏️" aria-label="Choose ✏️">✏️</button>
+          <button type="button" class="icon-choice" data-icon-choice="🧸" aria-label="Choose 🧸">🧸</button>
+          <button type="button" class="icon-choice" data-icon-choice="🎁" aria-label="Choose 🎁">🎁</button>
+          <button type="button" class="icon-choice" data-icon-choice="⭐" aria-label="Choose ⭐">⭐</button>
+          <button type="button" class="icon-choice" data-icon-choice="🏆" aria-label="Choose 🏆">🏆</button>
+          <button type="button" class="icon-choice" data-icon-choice="🎟️" aria-label="Choose 🎟️">🎟️</button>
+          <button type="button" class="icon-choice" data-icon-choice="🎉" aria-label="Choose 🎉">🎉</button>
+          <button type="button" class="icon-choice" data-icon-choice="🎈" aria-label="Choose 🎈">🎈</button>
+          <button type="button" class="icon-choice" data-icon-choice="🛏️" aria-label="Choose 🛏️">🛏️</button>
+          <button type="button" class="icon-choice" data-icon-choice="🧹" aria-label="Choose 🧹">🧹</button>
+          <button type="button" class="icon-choice" data-icon-choice="🧺" aria-label="Choose 🧺">🧺</button>
+          <button type="button" class="icon-choice" data-icon-choice="🧼" aria-label="Choose 🧼">🧼</button>
+          <button type="button" class="icon-choice" data-icon-choice="🍽️" aria-label="Choose 🍽️">🍽️</button>
+          <button type="button" class="icon-choice" data-icon-choice="🐶" aria-label="Choose 🐶">🐶</button>
+          <button type="button" class="icon-choice" data-icon-choice="🐴" aria-label="Choose 🐴">🐴</button>
+          <button type="button" class="icon-choice" data-icon-choice="🦫" aria-label="Choose 🦫">🦫</button>
+          <button type="button" class="icon-choice" data-icon-choice="🌟" aria-label="Choose 🌟">🌟</button>
+          <button type="button" class="icon-choice" data-icon-choice="❤️" aria-label="Choose ❤️">❤️</button>
+          <button type="button" class="icon-choice" data-icon-choice="💎" aria-label="Choose 💎">💎</button>
+          <button type="button" class="icon-choice" data-icon-choice="👑" aria-label="Choose 👑">👑</button>
+        </div>
+      </div>
+    </div>
+    <label>Item name
+      <input name="name" maxlength="60" placeholder="Extra dessert" required>
+    </label>
+    <label>Price
+      <input type="number" name="price" min="0" step="0.01" placeholder="3.00" required>
+    </label>
+    <button class="primary-button" type="submit">+ Add to Store</button>
+  </form>
+
+  <button
+    class="store-list-toggle"
+    type="button"
+    id="storeListToggle"
+    aria-expanded="false"
+    aria-controls="storeAdminList">
+    <span>
+      <strong>All store items</strong>
+      <small>{{ store_items|length }} item{% if store_items|length != 1 %}s{% endif %}</small>
+    </span>
+    <span class="slide-chevron" aria-hidden="true">⌄</span>
+  </button>
+
+  <div class="store-list-slider" id="storeListSlider">
+    <div class="store-admin-list" id="storeAdminList">
+      {% for item in store_items %}
+        <article class="store-admin-row {% if not item.active %}is-hidden{% endif %}">
+          <div class="store-item-summary">
+            <span class="store-item-big-icon">{{ item.icon }}</span>
+            <span>
+              <strong>{{ item.name }}</strong>
+              <small>${{ "%.2f"|format(item.price) }} · {% if item.active %}Visible{% else %}Hidden{% endif %}</small>
+            </span>
+          </div>
+
+          <form class="store-edit-form" method="post" action="{{ url_for('parent_store_edit', item_id=item.id) }}">
+            <label class="icon-field">Icon
+              <select name="icon" class="icon-select">
+              <option value="{{ item.icon }}" selected>{{ item.icon }}</option>
+              <option value="🍿" {% if item.icon == "🍿" %}selected{% endif %}>🍿</option>
+              <option value="🍪" {% if item.icon == "🍪" %}selected{% endif %}>🍪</option>
+              <option value="🍩" {% if item.icon == "🍩" %}selected{% endif %}>🍩</option>
+              <option value="🍦" {% if item.icon == "🍦" %}selected{% endif %}>🍦</option>
+              <option value="🍭" {% if item.icon == "🍭" %}selected{% endif %}>🍭</option>
+              <option value="🍬" {% if item.icon == "🍬" %}selected{% endif %}>🍬</option>
+              <option value="🍫" {% if item.icon == "🍫" %}selected{% endif %}>🍫</option>
+              <option value="🧁" {% if item.icon == "🧁" %}selected{% endif %}>🧁</option>
+              <option value="🍰" {% if item.icon == "🍰" %}selected{% endif %}>🍰</option>
+              <option value="🍕" {% if item.icon == "🍕" %}selected{% endif %}>🍕</option>
+              <option value="🍔" {% if item.icon == "🍔" %}selected{% endif %}>🍔</option>
+              <option value="🍟" {% if item.icon == "🍟" %}selected{% endif %}>🍟</option>
+              <option value="🌭" {% if item.icon == "🌭" %}selected{% endif %}>🌭</option>
+              <option value="🥤" {% if item.icon == "🥤" %}selected{% endif %}>🥤</option>
+              <option value="🧃" {% if item.icon == "🧃" %}selected{% endif %}>🧃</option>
+              <option value="🥛" {% if item.icon == "🥛" %}selected{% endif %}>🥛</option>
+              <option value="🍎" {% if item.icon == "🍎" %}selected{% endif %}>🍎</option>
+              <option value="🍓" {% if item.icon == "🍓" %}selected{% endif %}>🍓</option>
+              <option value="🍉" {% if item.icon == "🍉" %}selected{% endif %}>🍉</option>
+              <option value="🍌" {% if item.icon == "🍌" %}selected{% endif %}>🍌</option>
+              <option value="🥨" {% if item.icon == "🥨" %}selected{% endif %}>🥨</option>
+              <option value="🎮" {% if item.icon == "🎮" %}selected{% endif %}>🎮</option>
+              <option value="🎬" {% if item.icon == "🎬" %}selected{% endif %}>🎬</option>
+              <option value="📱" {% if item.icon == "📱" %}selected{% endif %}>📱</option>
+              <option value="💻" {% if item.icon == "💻" %}selected{% endif %}>💻</option>
+              <option value="🎧" {% if item.icon == "🎧" %}selected{% endif %}>🎧</option>
+              <option value="📺" {% if item.icon == "📺" %}selected{% endif %}>📺</option>
+              <option value="🕹️" {% if item.icon == "🕹️" %}selected{% endif %}>🕹️</option>
+              <option value="🎲" {% if item.icon == "🎲" %}selected{% endif %}>🎲</option>
+              <option value="🧩" {% if item.icon == "🧩" %}selected{% endif %}>🧩</option>
+              <option value="⚽" {% if item.icon == "⚽" %}selected{% endif %}>⚽</option>
+              <option value="🏀" {% if item.icon == "🏀" %}selected{% endif %}>🏀</option>
+              <option value="🏈" {% if item.icon == "🏈" %}selected{% endif %}>🏈</option>
+              <option value="🚲" {% if item.icon == "🚲" %}selected{% endif %}>🚲</option>
+              <option value="🛴" {% if item.icon == "🛴" %}selected{% endif %}>🛴</option>
+              <option value="🎨" {% if item.icon == "🎨" %}selected{% endif %}>🎨</option>
+              <option value="📚" {% if item.icon == "📚" %}selected{% endif %}>📚</option>
+              <option value="✏️" {% if item.icon == "✏️" %}selected{% endif %}>✏️</option>
+              <option value="🧸" {% if item.icon == "🧸" %}selected{% endif %}>🧸</option>
+              <option value="🎁" {% if item.icon == "🎁" %}selected{% endif %}>🎁</option>
+              <option value="⭐" {% if item.icon == "⭐" %}selected{% endif %}>⭐</option>
+              <option value="🏆" {% if item.icon == "🏆" %}selected{% endif %}>🏆</option>
+              <option value="🎟️" {% if item.icon == "🎟️" %}selected{% endif %}>🎟️</option>
+              <option value="🎉" {% if item.icon == "🎉" %}selected{% endif %}>🎉</option>
+              <option value="🎈" {% if item.icon == "🎈" %}selected{% endif %}>🎈</option>
+              <option value="🛏️" {% if item.icon == "🛏️" %}selected{% endif %}>🛏️</option>
+              <option value="🧹" {% if item.icon == "🧹" %}selected{% endif %}>🧹</option>
+              <option value="🧺" {% if item.icon == "🧺" %}selected{% endif %}>🧺</option>
+              <option value="🧼" {% if item.icon == "🧼" %}selected{% endif %}>🧼</option>
+              <option value="🍽️" {% if item.icon == "🍽️" %}selected{% endif %}>🍽️</option>
+              <option value="🐶" {% if item.icon == "🐶" %}selected{% endif %}>🐶</option>
+              <option value="🐴" {% if item.icon == "🐴" %}selected{% endif %}>🐴</option>
+              <option value="🦫" {% if item.icon == "🦫" %}selected{% endif %}>🦫</option>
+              <option value="🌟" {% if item.icon == "🌟" %}selected{% endif %}>🌟</option>
+              <option value="❤️" {% if item.icon == "❤️" %}selected{% endif %}>❤️</option>
+              <option value="💎" {% if item.icon == "💎" %}selected{% endif %}>💎</option>
+              <option value="👑" {% if item.icon == "👑" %}selected{% endif %}>👑</option>
+              </select>
+            </label>
+            <label>Item
+              <input name="name" maxlength="60" value="{{ item.name }}" required>
+            </label>
+            <label>Price
+              <input type="number" name="price" min="0" step="0.01" value="{{ '%.2f'|format(item.price) }}" required>
+            </label>
+            <button class="secondary-button" type="submit">Save</button>
+          </form>
+
+          <div class="store-row-actions">
+            <span class="status-badge {% if item.active %}good{% endif %}">
+              {% if item.active %}Visible in Store{% else %}Hidden{% endif %}
+            </span>
+            <form method="post" action="{{ url_for('parent_store_toggle', item_id=item.id) }}">
+              <button class="ghost-button" type="submit">
+                {% if item.active %}Hide{% else %}Show{% endif %}
+              </button>
+            </form>
+            <form method="post" action="{{ url_for('parent_store_delete', item_id=item.id) }}" onsubmit="return confirm('Remove {{ item.name|e }} from the store?');">
+              <button class="delete-button" type="submit">Delete</button>
+            </form>
+          </div>
+        </article>
+      {% else %}
+        <div class="store-empty-admin">
+          <span>🛒</span>
+          <strong>No store items yet</strong>
+          <small>Add your first item above.</small>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+  const toggle = document.getElementById('storeListToggle');
+  const slider = document.getElementById('storeListSlider');
+  if (!toggle || !slider) return;
+
+  const setOpen = (open) => {
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    slider.classList.toggle('open', open);
+  };
+
+  toggle.addEventListener('click', () => {
+    setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+  });
+
+  // If a store action redirects back with #store-manager, open the list automatically.
+  if (window.location.hash === '#store-manager') {
+    setOpen(true);
+  }
+})();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.icon-picker-field').forEach(field => {
+    const trigger = field.querySelector('[data-icon-trigger]');
+    const panel = field.querySelector('[data-icon-panel]');
+    const input = field.querySelector('[data-icon-input]');
+    const display = field.querySelector('[data-selected-icon]');
+    const choices = field.querySelectorAll('[data-icon-choice]');
+
+    if (!trigger || !panel || !input || !display) return;
+
+    const setOpen = (open) => {
+      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      panel.classList.toggle('open', open);
+    };
+
+    trigger.addEventListener('click', (event) => {
+      event.preventDefault();
+      setOpen(trigger.getAttribute('aria-expanded') !== 'true');
+    });
+
+    choices.forEach(choice => {
+      choice.addEventListener('click', (event) => {
+        event.preventDefault();
+        const icon = choice.dataset.iconChoice || '⭐';
+        input.value = icon;
+        display.textContent = icon;
+        choices.forEach(c => c.classList.toggle('selected', c === choice));
+        setOpen(false);
+      });
+    });
+  });
+});
+</script>
+
+{% endblock %}
